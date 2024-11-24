@@ -1,14 +1,16 @@
 import keypress from "keypress";
 
-import { MenuScene, Screen } from "./screen.js";
+import { Screen } from "./screen.js";
+import { MenuScene } from "./menu.js";
 
 keypress(process.stdin);
 
 const screen = new Screen([
   new MenuScene({
-    "Other Menu": new MenuScene(),
-    "Some Menu": new MenuScene(),
-    "Some Really Really Long Menu": new MenuScene(),
+    "Color Picker": new MenuScene(),
+    "Palette Generator": new MenuScene(),
+    "Gradient Generator": new MenuScene(),
+    "Accesibility Testing": new MenuScene(),
   }),
 ]);
 
@@ -17,6 +19,8 @@ process.stdin.on("keypress", function (ch, key) {
     screen.close();
     process.exit();
   }
+
+  screen.onKey(ch, key);
 });
 
 screen.render();

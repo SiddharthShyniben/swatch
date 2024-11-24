@@ -20,3 +20,5 @@ export const logoColors = [
   "#F2FFFC",
   "#FFFFFF",
 ];
+
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
