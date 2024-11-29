@@ -1,54 +1,16 @@
 import Color from "colorjs.io";
 import Values from "values.js";
 import { colornames } from "color-name-list";
-import nearestColor from "nearest-color";
-import convert from "color-convert";
 
-import { getDimensions } from "./util.js";
-
-const chars =
-  ",# !$%&()-.0123456789?abcdefghijklmnopqrstuvwxyz²ßàáâäåçèéêëìíîïñòóöùúûüāēěğīıłńōőœšūżǎǐǔǜя’₂№ⅱ";
-const colors = colornames.reduce(
-  (o, { name, hex }) => Object.assign(o, { [name]: hex }),
-  {},
-);
-const nearest = nearestColor.from(colors);
-const customRGB = {
-  format: {
-    name: "rgb",
-    coords: ["<number>[0, 255]", "<number>[0, 255]", "<number>[0, 255]"],
-    commas: true,
-  },
-};
-
-const formats = [
-  (x) => x,
-  (x) => "#" + convert.rgb.hex(x.slice(4, -1).split(", ").map(Number)),
-  (x) =>
-    "hsl(" +
-    convert.rgb.hsl(x.slice(4, -1).split(", ").map(Number)).join(", ") +
-    ")",
-  (x) =>
-    "hsv(" +
-    convert.rgb.hsv(x.slice(4, -1).split(", ").map(Number)).join(", ") +
-    ")",
-  (x) =>
-    "hwb(" +
-    convert.rgb.hwb(x.slice(4, -1).split(", ").map(Number)).join(", ") +
-    ")",
-  (x) =>
-    "cmyk(" +
-    convert.rgb.cmyk(x.slice(4, -1).split(", ").map(Number)).join(", ") +
-    ")",
-  (x) =>
-    "ansi(" + convert.rgb.ansi16(x.slice(4, -1).split(", ").map(Number)) + ")",
-  (x) =>
-    "ansi256(" +
-    convert.rgb.ansi256(x.slice(4, -1).split(", ").map(Number)) +
-    ")",
-];
-
-let i = 0;
+import {
+  chars,
+  nearest,
+  customRGB,
+  getDimensions,
+  nextFormat,
+  themeColors,
+  contrastWith,
+} from "./util.js";
 
 export class PickerScene {
   constructor() {
@@ -97,13 +59,20 @@ export class PickerScene {
       }
 
       if (ch.toLowerCase() === "c") {
-        this.inSwatch = true;
+        this.swatchI = 10;
+        this.inSwatch = false;
         this.changing = true;
         this.colorName = this.color = "";
       }
 
+      if (key.name === "return") {
+        this.swatchI = 10;
+        this.inSwatch = false;
+        this.color = this.fixColor(this.color);
+      }
+
       if (ch.toLowerCase() === "f") {
-        this.format = formats[++i] ?? formats[(i = 0)];
+        this.format = nextFormat();
       }
     }
   }
@@ -133,8 +102,12 @@ export class PickerScene {
       ? [
           ["return", "select"],
           ["tab", "autocomplete"],
+          ["", ""],
+          ["", ""],
+          ["", ""],
         ]
       : [
+          ["return", "select"],
           ["c", "change"],
           ["f", "switch format"],
           ["j", "go up the swatch"],
@@ -144,19 +117,18 @@ export class PickerScene {
     for (let i = 0; i < opts.length; i++)
       canvas
         .moveTo(xPad, yPad + (rows - 5) + 1 + i)
-        .foreground("#ccfef2")
-        .background("#000000")
+        .foreground(themeColors.info)
+        .background("black")
         .write(opts[i][0])
         .moveTo(xPad + opts[i][0].length, yPad + (rows - 5) + 1 + i)
-        .foreground("grey")
-        .background("#000000")
+        .foreground(themeColors.dim)
         .write((opts[i][1] ? " - " : "") + opts[i][1].padEnd(30, " "));
 
     const outColor = this.format(this.color);
 
     canvas
       .moveTo(xPad + cols / 2 + 2, yPad)
-      .background(this.changing ? "#1a1a1a" : "#000000")
+      .background(this.changing ? themeColors.changing : "black")
       .foreground("white")
       .write(
         this.changing ? this.color.padEnd(20, " ") : outColor.padEnd(20, " "),
@@ -164,17 +136,18 @@ export class PickerScene {
 
     canvas
       .moveTo(xPad + cols / 2 + 2 + outColor.length, yPad)
-      .background(this.changing ? "#1a1a1a" : "#000000")
-      .foreground("yellow")
-      .write(this.autocomplete.slice(outColor.length).padEnd(10, " "));
+      .background(this.changing ? themeColors.changing : "black")
+      .foreground(themeColors.autocomplete)
+      .write(this.autocomplete.slice(outColor.length).padEnd(20, " "));
 
     canvas
       .moveTo(xPad + cols / 2 + 2, yPad + 1)
-      .background("#000000")
+      .background("black")
       .foreground("white")
       .write(this.colorName.padEnd(20, " "));
 
     try {
+      if (this.changing) throw 1;
       for (let i = 0; i < this.swatch.length; i++) {
         const rgb = this.swatch[i].rgbString();
 
@@ -183,8 +156,8 @@ export class PickerScene {
           .background(rgb)
           .write("    ")
           .moveTo(xPad + cols / 2 + 7, yPad + 3 + i)
-          .foreground(i === this.swatchI ? "yellow" : "white")
-          .background("#000000")
+          .foreground(i === this.swatchI ? themeColors.autocomplete : "white")
+          .background("black")
           .write(this.format(rgb).padEnd(20, " "));
       }
     } catch {
@@ -194,38 +167,37 @@ export class PickerScene {
       }
     }
 
-    canvas
-      .moveTo(xPad + cols / 2 + 2, yPad + 25)
-      .background("white")
-      .foreground(this.color)
-      .write("               ")
-      .moveBy(-15, 1)
-      .write(" Contrast Test ")
-      .background("black")
-      .foreground("white")
-      .write(
-        " " +
-          Math.abs(Color.contrast(this.color, "white", "apca").toFixed(2))
-            .toString()
-            .padEnd(10, " "),
-      )
-      .background("white")
-      .moveTo(xPad + cols / 2 + 2, yPad + 27)
-      .write("               ")
-      .moveBy(-15, 1)
-      .background("black")
-      .foreground(this.color)
-      .write("               ")
-      .moveBy(-15, 1)
-      .write(" Contrast Test ")
-      .foreground("white")
-      .write(
-        " " +
-          Math.abs(Color.contrast(this.color, "black", "apca").toFixed(2))
-            .toString()
-            .padEnd(10, " "),
-      )
-      .moveTo(xPad + cols / 2 + 2, yPad + 29);
+    try {
+      if (this.changing) throw 1;
+      canvas
+        .moveTo(xPad + cols / 2 + 2, yPad + 25)
+        .background("white")
+        .foreground(this.color)
+        .write("               ")
+        .moveBy(-15, 1)
+        .write(" Contrast test ")
+        .background("black")
+        .foreground("white")
+        .write(" " + contrastWith(this.color, "white"))
+        .background("white")
+        .moveTo(xPad + cols / 2 + 2, yPad + 27)
+        .write("               ")
+        .moveBy(-15, 1)
+        .background("black")
+        .foreground(this.color)
+        .write("               ")
+        .moveBy(-15, 1)
+        .write(" Contrast test ")
+        .foreground("white")
+        .write(" " + contrastWith(this.color, "black"))
+        .moveTo(xPad + cols / 2 + 2, yPad + 29);
+    } catch {
+      for (let i = 0; i < 6; i++)
+        canvas
+          .moveTo(xPad + cols / 2 + 2, yPad + 25 + i)
+          .background("black")
+          .write(" ".repeat(35));
+    }
 
     canvas.flush();
   }
@@ -254,7 +226,7 @@ export class PickerScene {
       return rgb.toString(customRGB);
     } catch {}
 
-    return this.changing ? "#1a1a1a" : "#000000";
+    return this.changing ? "#1a1a1a" : "black";
   }
 
   assignColorName() {
