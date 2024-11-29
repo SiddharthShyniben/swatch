@@ -26,7 +26,7 @@ export class MenuScene {
     }
 
     const index = this.menuKeys.findIndex(
-      (k) => k[0].toLowerCase() == ch.toLowerCase(),
+      (k) => k[0].toLowerCase() == ch?.toLowerCase(),
     );
 
     if (index >= 0) this.state.chosen = index;

@@ -26,9 +26,11 @@ export class Screen {
     try {
       this.scenes[this.chosen]?.render(this.canvas);
     } catch (e) {
-      this.chosen = e;
-      this.transition();
-      this.render();
+      if (!isNaN(e)) {
+        this.chosen = e;
+        this.transition();
+        this.render();
+      } else throw e;
     }
   }
 

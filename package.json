@@ -11,7 +11,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "color-convert": "^2.0.1",
+    "color-name-list": "^11.0.0",
+    "colorjs.io": "^0.5.2",
     "keypress": "^0.2.1",
-    "terminal-canvas": "^3.1.2"
+    "nearest-color": "^0.4.4",
+    "terminal-canvas": "^3.1.2",
+    "values.js": "^2.1.1"
   }
 }
