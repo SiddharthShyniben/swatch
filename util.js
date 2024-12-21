@@ -76,3 +76,11 @@ export const contrastWith = (a, b) =>
   Math.abs(Color.contrast(a, b, "apca").toFixed(2))
     .toString()
     .padEnd(10, " ");
+
+export const getColorName = (color) => {
+  try {
+    const rgb = new Color(color);
+    const near = nearest(rgb.toString({ format: "hex" }));
+    return near.name;
+  } catch { }
+};

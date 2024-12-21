@@ -36,6 +36,7 @@ export class MenuScene {
 
   render(canvas) {
     if (this.scheduledChange) {
+      this.scheduledChange = false;
       throw this.state.chosen + 1;
     }
 
@@ -50,11 +51,7 @@ export class MenuScene {
     const yPad = ~~((height - rows) / 2);
 
     if (longest > width)
-      canvas
-        .background("black")
-        .moveTo(0, 0)
-        .write("Screen too small!")
-        .flush();
+      canvas.background("none").moveTo(0, 0).write("Screen too small!").flush();
 
     const padding = Math.max(~~((longest - logoColors.length) / 2), 0);
     for (let i = 0; i < 3; i++)
@@ -67,7 +64,7 @@ export class MenuScene {
     for (let i = 0; i < this.menuKeys.length; i++) {
       canvas
         .moveTo(xPad, yPad + 4 + i)
-        .background("black")
+        .background("none")
         .foreground(i == this.state.chosen ? "white" : "grey")
         .write(this.menuKeys[i]);
     }
@@ -79,7 +76,7 @@ export class MenuScene {
     const { width, height } = getDimensions();
     for (let x = 0; x < width; x++)
       for (let y = 0; y < height; y++)
-        this.canvas.moveTo(x, y).background("black").write(" ");
+        this.canvas.moveTo(x, y).background("none").write(" ");
     this.canvas.flush();
   }
 }

@@ -10,11 +10,15 @@ import {
   nextFormat,
   themeColors,
   contrastWith,
+  getColorName,
 } from "./util.js";
+import { getLibrary, setLibrary } from "./library.js";
 
 export class PickerScene {
   constructor() {
-    this.color = "rgb(37, 99, 235)";
+    this.color = "rgb(17, 35, 88)";
+    this.library = getLibrary();
+    this.libraryI = 0;
     this.colorName = "";
     this.autocomplete = "";
     this.swatch = new Values(this.color).all(10);
@@ -23,7 +27,34 @@ export class PickerScene {
   }
 
   onKey(ch, key) {
-    if (this.changing) {
+    if (this.focusLibrary) {
+      if (ch) {
+        if (ch.toLowerCase() === 'h') this.focusLibrary = false;
+
+        if (ch.toLowerCase() === 'j') {
+          this.libraryI++;
+          if (this.libraryI >= this.library.length) this.libraryI = 0;
+        }
+        if (ch.toLowerCase() === 'k') {
+          this.libraryI--;
+          if (this.libraryI < 0) this.libraryI = this.library.length - 1;
+        }
+      }
+
+      if (key) {
+        if (key.name === "return" && this.library.length) {
+          this.color = this.fixColor(this.library[this.libraryI]);
+          this.focusLibrary = false;
+          this.libraryI = 0;
+        }
+
+        if (key.name === "backspace" && this.library.length) {
+          this.library.splice(this.libraryI, 1);
+          setLibrary(this.library)
+          if (!this.library[this.libraryI]) this.libraryI--;
+        }
+      }
+    } else if (this.changing) {
       if (key) {
         if (key.name === "return") {
           this.color = this.fixColor(this.color);
@@ -37,12 +68,12 @@ export class PickerScene {
 
       if (ch && chars.includes(ch.toLowerCase())) {
         this.color += ch;
-      }
 
-      this.autocomplete =
-        colornames.find((color) =>
-          color.name.toLowerCase().startsWith(this.color.toLowerCase()),
-        )?.name || "";
+        this.autocomplete =
+          colornames.find((color) =>
+            color.name.toLowerCase().startsWith(this.color.toLowerCase()),
+          )?.name || "";
+      }
     } else if (ch) {
       if (ch.toLowerCase() === "j") {
         this.swatchI++;
@@ -58,6 +89,10 @@ export class PickerScene {
         this.color = this.fixColor(this.swatch[this.swatchI].rgbString());
       }
 
+      if (ch.toLowerCase() === "l") {
+        this.focusLibrary = true;
+      }
+
       if (ch.toLowerCase() === "c") {
         this.swatchI = 10;
         this.inSwatch = false;
@@ -65,7 +100,7 @@ export class PickerScene {
         this.colorName = this.color = "";
       }
 
-      if (key.name === "return") {
+      if (key && key.name === "return") {
         this.swatchI = 10;
         this.inSwatch = false;
         this.color = this.fixColor(this.color);
@@ -74,77 +109,128 @@ export class PickerScene {
       if (ch.toLowerCase() === "f") {
         this.format = nextFormat();
       }
+
+      if (ch === "b") {
+        this.menu = true;
+      }
+
+      if (ch === '*') {
+        if (this.library.includes(this.color))
+          this.library.splice(this.library.indexOf(this.color), 1)
+        else
+          this.library.push(this.color);
+
+        setLibrary(this.library)
+      }
     }
   }
 
-  render(canvas) {
+  getSize() {
     const { width, height } = getDimensions();
 
-    const cols = 100;
+    const cols = 103; // 33 + 2 + 33 + 2 + 33
     const rows = 40;
     const xPad = ~~((width - cols) / 2);
     const yPad = ~~((height - rows) / 2);
 
+    const segmentWidth = 33;
+    const maxOpts = 7;
+    const firstSegment = xPad;
+    const secondSegment = xPad + segmentWidth + 2;
+    const thirdSegment = xPad + 2 * segmentWidth + 4;
+
+    return {
+      width,
+      height,
+      cols,
+      rows,
+      xPad,
+      yPad,
+      segmentWidth,
+      firstSegment,
+      secondSegment,
+      thirdSegment,
+      maxOpts,
+    };
+  }
+
+  render(canvas) {
+    if (this.menu) {
+      this.menu = false;
+      throw 0;
+    }
+
+    const { width, cols } = this.getSize();
+
     if (width < cols)
-      canvas
-        .background("black")
-        .moveTo(0, 0)
-        .write("Screen too small!")
-        .flush();
+      canvas.background("none").moveTo(0, 0).write("Screen too small!").flush();
 
-    for (let i = 0; i < rows - 5; i++)
+    this.drawColor(canvas);
+    this.drawOpts(canvas);
+    this.drawColorAndName(canvas);
+    this.drawSwatch(canvas);
+    this.drawContrast(canvas);
+    this.drawLibrary(canvas);
+
+    canvas.flush();
+  }
+
+  drawColor(canvas) {
+    const { rows, yPad, firstSegment, segmentWidth, maxOpts } = this.getSize();
+
+    for (let i = 0; i < rows - maxOpts; i++)
       canvas
-        .moveTo(xPad, yPad + i)
+        .moveTo(firstSegment, yPad + i)
         .background(this.fixColor(this.color))
-        .write(" ".repeat(cols / 2));
+        .write(" ".repeat(segmentWidth));
+  }
 
-    const opts = this.changing
-      ? [
-          ["return", "select"],
-          ["tab", "autocomplete"],
-          ["", ""],
-          ["", ""],
-          ["", ""],
-        ]
-      : [
-          ["return", "select"],
-          ["c", "change"],
-          ["f", "switch format"],
-          ["j", "go up the swatch"],
-          ["k", "go down the swatch"],
-        ];
+  drawOpts(canvas) {
+    const { rows, firstSegment, yPad, maxOpts } = this.getSize();
+    const opts = this.getOpts();
 
     for (let i = 0; i < opts.length; i++)
       canvas
-        .moveTo(xPad, yPad + (rows - 5) + 1 + i)
+        .moveTo(firstSegment, yPad + (rows - maxOpts) + 1 + i)
         .foreground(themeColors.info)
-        .background("black")
+        .background("none")
         .write(opts[i][0])
-        .moveTo(xPad + opts[i][0].length, yPad + (rows - 5) + 1 + i)
+        .moveTo(
+          firstSegment + opts[i][0].length,
+          yPad + (rows - maxOpts) + 1 + i,
+        )
         .foreground(themeColors.dim)
         .write((opts[i][1] ? " - " : "") + opts[i][1].padEnd(30, " "));
+  }
+
+  drawColorAndName(canvas) {
+    const { yPad, secondSegment } = this.getSize();
 
     const outColor = this.format(this.color);
 
     canvas
-      .moveTo(xPad + cols / 2 + 2, yPad)
-      .background(this.changing ? themeColors.changing : "black")
+      .moveTo(secondSegment, yPad)
+      .background(this.changing ? themeColors.changing : "none")
       .foreground("white")
       .write(
         this.changing ? this.color.padEnd(20, " ") : outColor.padEnd(20, " "),
       );
 
     canvas
-      .moveTo(xPad + cols / 2 + 2 + outColor.length, yPad)
-      .background(this.changing ? themeColors.changing : "black")
+      .moveTo(secondSegment + outColor.length, yPad)
+      .background(this.changing ? themeColors.changing : "none")
       .foreground(themeColors.autocomplete)
       .write(this.autocomplete.slice(outColor.length).padEnd(20, " "));
 
     canvas
-      .moveTo(xPad + cols / 2 + 2, yPad + 1)
-      .background("black")
+      .moveTo(secondSegment, yPad + 1)
+      .background("none")
       .foreground("white")
       .write(this.colorName.padEnd(20, " "));
+  }
+
+  drawSwatch(canvas) {
+    const { yPad, secondSegment } = this.getSize();
 
     try {
       if (this.changing) throw 1;
@@ -152,35 +238,39 @@ export class PickerScene {
         const rgb = this.swatch[i].rgbString();
 
         canvas
-          .moveTo(xPad + cols / 2 + 2, yPad + 3 + i)
+          .moveTo(secondSegment, yPad + 3 + i)
           .background(rgb)
           .write("    ")
-          .moveTo(xPad + cols / 2 + 7, yPad + 3 + i)
+          .moveTo(secondSegment + 5, yPad + 3 + i)
           .foreground(i === this.swatchI ? themeColors.autocomplete : "white")
-          .background("black")
+          .background("none")
           .write(this.format(rgb).padEnd(20, " "));
       }
     } catch {
       this.swatch = [];
       for (let i = 0; i < 21; i++) {
-        canvas.moveTo(xPad + cols / 2 + 2, yPad + 3 + i).write(" ".repeat(30));
+        canvas.moveTo(secondSegment, yPad + 3 + i).write(" ".repeat(30));
       }
     }
+  }
+
+  drawContrast(canvas) {
+    const { yPad, secondSegment } = this.getSize();
 
     try {
       if (this.changing) throw 1;
       canvas
-        .moveTo(xPad + cols / 2 + 2, yPad + 25)
+        .moveTo(secondSegment, yPad + 25)
         .background("white")
         .foreground(this.color)
         .write("               ")
         .moveBy(-15, 1)
         .write(" Contrast test ")
-        .background("black")
+        .background("none")
         .foreground("white")
         .write(" " + contrastWith(this.color, "white"))
         .background("white")
-        .moveTo(xPad + cols / 2 + 2, yPad + 27)
+        .moveTo(secondSegment, yPad + 27)
         .write("               ")
         .moveBy(-15, 1)
         .background("black")
@@ -189,17 +279,50 @@ export class PickerScene {
         .moveBy(-15, 1)
         .write(" Contrast test ")
         .foreground("white")
+        .background("none")
         .write(" " + contrastWith(this.color, "black"))
-        .moveTo(xPad + cols / 2 + 2, yPad + 29);
+        .moveTo(secondSegment, yPad + 30)
+        .background("black")
+        .write("               ");
     } catch {
       for (let i = 0; i < 6; i++)
         canvas
-          .moveTo(xPad + cols / 2 + 2, yPad + 25 + i)
-          .background("black")
+          .moveTo(secondSegment, yPad + 25 + i)
+          .background("none")
           .write(" ".repeat(35));
     }
+  }
 
-    canvas.flush();
+  drawLibrary(canvas) {
+    const { yPad, thirdSegment, segmentWidth, rows } = this.getSize();
+
+    for (let i = 0; i < rows; i++)
+      canvas.moveTo(thirdSegment, yPad + i).background(this.focusLibrary ? themeColors.changing : "none").write(" ".repeat(segmentWidth))
+
+    canvas
+      .moveTo(thirdSegment, yPad)
+      .foreground("white")
+      .write("Library:")
+
+    if (this.library.length === 0) {
+      canvas.foreground(themeColors.dim).write(" Empty.")
+    }
+
+
+    for (const [i, color] of Object.entries(this.library)) {
+      const name = getColorName(color);
+
+      canvas
+        .moveTo(thirdSegment, yPad + 2 + 3 * i)
+        .background(color)
+        .write(" ".repeat(segmentWidth));
+
+      canvas
+        .moveTo(thirdSegment, yPad + 2 + 3 * i + 1)
+        .background("none")
+        .foreground(this.focusLibrary && +i === this.libraryI ? themeColors.autocomplete : "none")
+        .write(`${name}`.padEnd(segmentWidth, " "));
+    }
   }
 
   fixColor(str) {
@@ -224,9 +347,9 @@ export class PickerScene {
       this.colorName = (near.distance === 0 ? "" : "~") + near.name;
 
       return rgb.toString(customRGB);
-    } catch {}
+    } catch { }
 
-    return this.changing ? "#1a1a1a" : "black";
+    return this.changing ? "#1a1a1a" : "none";
   }
 
   assignColorName() {
@@ -234,5 +357,37 @@ export class PickerScene {
     const near = nearest(rgb.toString({ format: "hex" }));
 
     this.colorName = (near.distance === 0 ? "" : "~") + near.name;
+  }
+
+  getOpts() {
+    return this.focusLibrary
+      ? [
+        ["j/k", "go up/down"],
+        ["return", "select"],
+        ["h", "unfocus library"],
+        ["backspace", "remove from library"],
+        ["", ""],
+        ["", ""],
+        ["", ""],
+      ]
+      : this.changing
+        ? [
+          ["tab", "autocomplete"],
+          ["return", "select"],
+          ["", ""],
+          ["", ""],
+          ["", ""],
+          ["", ""],
+          ["", ""],
+        ]
+        : [
+          ["j/k", "go up/down"],
+          ["return", "select"],
+          ["c", "change"],
+          ["f", "switch format"],
+          ["b", "back to menu"],
+          ["*", "add to/remove from library"],
+          ["l", "focus library"]
+        ];
   }
 }
