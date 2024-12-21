@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/color-convert": "^2.0.4",
     "color-convert": "^2.0.1",
     "color-name-list": "^11.0.0",
     "colorjs.io": "^0.5.2",
