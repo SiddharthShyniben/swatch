@@ -20,6 +20,7 @@ import {
 } from "./util.js";
 
 import { getLibrary, setLibrary } from "./library.js";
+import randomColor from "randomcolor";
 
 export class PickerScene {
   constructor() {
@@ -38,10 +39,12 @@ export class PickerScene {
   }
 
   render(canvas) {
-    const { width, cols } = this.getSize();
+    const { width, height, rows, cols } = this.getSize();
 
-    if (width < cols)
+    if (width < cols || height < rows)
       canvas.background("none").moveTo(0, 0).write("Screen too small!").flush();
+
+    canvas.eraseScreen();
 
     this.drawColor(canvas);
     this.drawOpts(canvas);
@@ -85,10 +88,14 @@ export class PickerScene {
       if (key.name === "return") {
         this.color = this.fixColor(this.color);
         this.changing = false;
+        this.autocomplete = "";
       }
 
       if (key.name === "backspace") this.color = this.color.slice(0, -1);
-      if (key.name === "tab" && this.autocomplete) this.color = this.colorName = this.autocomplete;
+      if (key.name === "tab" && this.autocomplete) {
+        this.color = this.colorName = this.autocomplete;
+        this.autocomplete = "";
+      }
 
       if (chars.includes(ch.toLowerCase())) {
         this.color += ch;
@@ -168,7 +175,7 @@ export class PickerScene {
           yPad + (rows - maxOpts) + 1 + i,
         )
         .foreground(themeColors.dim)
-        .write((opts[i][1] ? " - " : "") + opts[i][1].padEnd(30, " "));
+        .write((opts[i][1] ? " - " : "") + opts[i][1]);
   }
 
   drawColorAndName(canvas) {
@@ -180,102 +187,88 @@ export class PickerScene {
       .moveTo(secondSegment, yPad)
       .background(this.changing ? themeColors.changing : "none")
       .foreground("white")
-      .write(
-        this.changing ? this.color.padEnd(20, " ") : outColor.padEnd(20, " "),
-      );
+      .write(this.changing ? this.color : outColor);
 
     canvas
       .moveTo(secondSegment + outColor.length, yPad)
       .background(this.changing ? themeColors.changing : "none")
       .foreground(themeColors.autocomplete)
-      .write(this.autocomplete.slice(outColor.length).padEnd(20, " "));
+      .write(this.autocomplete.slice(outColor.length));
 
     canvas
       .moveTo(secondSegment, yPad + 1)
       .background("none")
       .foreground("white")
-      .write(this.colorName.padEnd(20, " "));
+      .write(this.colorName);
   }
 
   drawSwatch(canvas) {
     const { yPad, secondSegment } = this.getSize();
 
-    try {
-      if (this.changing) throw 1;
-      for (let i = 0; i < this.swatch.length; i++) {
-        const rgb = this.swatch[i].rgbString();
+    if (this.changing) return;
 
-        canvas
-          .moveTo(secondSegment, yPad + 3 + i)
-          .background(rgb)
-          .write("    ")
-          .moveTo(secondSegment + 5, yPad + 3 + i)
-          .foreground(i === this.swatchI ? themeColors.autocomplete : "white")
-          .background("none")
-          .write(this.format(rgb).padEnd(20, " "));
-      }
-    } catch {
-      this.swatch = [];
-      for (let i = 0; i < 21; i++) {
-        canvas.moveTo(secondSegment, yPad + 3 + i).write(" ".repeat(30));
-      }
+    for (let i = 0; i < this.swatch.length; i++) {
+      const rgb = this.swatch[i].rgbString();
+
+      canvas
+        .moveTo(secondSegment, yPad + 3 + i)
+        .background(rgb)
+        .write("    ")
+        .moveTo(secondSegment + 5, yPad + 3 + i)
+        .foreground(i === this.swatchI ? themeColors.autocomplete : "white")
+        .background("none")
+        .write(this.format(rgb));
     }
   }
 
   drawContrast(canvas) {
     const { yPad, secondSegment } = this.getSize();
 
-    try {
-      if (this.changing) throw 1;
-      canvas
-        .moveTo(secondSegment, yPad + 25)
-        .background("white")
-        .foreground(this.color)
-        .write("               ")
-        .moveBy(-15, 1)
-        .write(" Contrast test ")
-        .background("none")
-        .foreground("white")
-        .write(" " + contrastWith(this.color, "white"))
-        .background("white")
-        .moveTo(secondSegment, yPad + 27)
-        .write("               ")
-        .moveBy(-15, 1)
-        .background("black")
-        .foreground(this.color)
-        .write("               ")
-        .moveBy(-15, 1)
-        .write(" Contrast test ")
-        .foreground("white")
-        .background("none")
-        .write(" " + contrastWith(this.color, "black"))
-        .moveTo(secondSegment, yPad + 30)
-        .background("black")
-        .write("               ");
-    } catch {
-      for (let i = 0; i < 6; i++)
-        canvas
-          .moveTo(secondSegment, yPad + 25 + i)
-          .background("none")
-          .write(" ".repeat(35));
-    }
+    if (this.changing) return;
+
+    canvas
+      .moveTo(secondSegment, yPad + 25)
+      .background("white")
+      .foreground(this.color)
+      .write("               ")
+      .moveBy(-15, 1)
+      .write(" Contrast test ")
+      .background("none")
+      .foreground("white")
+      .write(" " + contrastWith(this.color, "white"))
+      .background("white")
+      .moveTo(secondSegment, yPad + 27)
+      .write("               ")
+      .moveBy(-15, 1)
+      .background("black")
+      .foreground(this.color)
+      .write("               ")
+      .moveBy(-15, 1)
+      .write(" Contrast test ")
+      .foreground("white")
+      .background("none")
+      .write(" " + contrastWith(this.color, "black"))
+      .moveTo(secondSegment, yPad + 30)
+      .background("black")
+      .write("               ");
   }
 
   drawLibrary(canvas) {
     const { yPad, thirdSegment, segmentWidth, rows } = this.getSize();
 
     for (let i = 0; i < rows; i++)
-      canvas.moveTo(thirdSegment, yPad + i).background(this.focusLibrary ? themeColors.changing : "none").write(" ".repeat(segmentWidth))
+      canvas
+        .moveTo(thirdSegment, yPad + i)
+        .background(this.focusLibrary ? themeColors.changing : "none")
+        .write(" ".repeat(segmentWidth))
 
     canvas
       .moveTo(thirdSegment, yPad)
       .foreground("white")
       .write("Library:")
 
-    if (this.library.length === 0) {
+    if (this.library.length === 0)
       canvas.foreground(themeColors.dim).write(" Empty.")
-    }
-
 
     for (const [i, color] of Object.entries(this.library)) {
       const name = getColorName(color);
@@ -289,7 +282,7 @@ export class PickerScene {
         .moveTo(thirdSegment, yPad + 2 + 3 * i + 1)
         .background("none")
         .foreground(this.focusLibrary && +i === this.libraryI ? themeColors.autocomplete : "none")
-        .write(`${name}`.padEnd(segmentWidth, " "));
+        .write(`${name}`);
     }
   }
 
