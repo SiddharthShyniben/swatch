@@ -1,22 +1,12 @@
 import keypress from "keypress";
 
 import { Screen } from "./screen.js";
-import { MenuScene } from "./menu.js";
 import { PickerScene } from "./picker.js";
 
 keypress(process.stdin);
 
 const picker = new PickerScene();
-
-const screen = new Screen([
-  new MenuScene({
-    "Color Picker": picker,
-    "Palette Generator": new MenuScene(),
-    "Gradient Generator": new MenuScene(),
-    "Accesibility Testing": new MenuScene(),
-  }),
-  picker,
-]);
+const screen = new Screen([picker]);
 
 process.stdin.on("keypress", function (ch, key) {
   if (key && key.ctrl && key.name === "c") {

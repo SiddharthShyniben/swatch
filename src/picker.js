@@ -1,28 +1,39 @@
 import Color from "colorjs.io";
 import Values from "values.js";
 import { colornames } from "color-name-list";
+import convert from "color-convert";
 
 import {
   chars,
-  nearest,
+  themeColors,
   customRGB,
   getDimensions,
+
+  nearest,
   nextFormat,
-  themeColors,
   contrastWith,
   getColorName,
+
+  libraryMenu,
+  selectMenu,
+  mainMenu
 } from "./util.js";
+
 import { getLibrary, setLibrary } from "./library.js";
 
 export class PickerScene {
   constructor() {
-    this.color = "rgb(17, 35, 88)";
+    const initialColor = colornames[Math.floor(Math.random() * colornames.length)]
+    this.color = "rgb(" + convert.hex.rgb(initialColor.hex.slice(1)).join(", ") + ")";
+    this.colorName = initialColor.name;
+    this.autocomplete = "";
+
     this.library = getLibrary();
     this.libraryI = 0;
-    this.colorName = "";
-    this.autocomplete = "";
+
     this.swatch = new Values(this.color).all(10);
     this.swatchI = 10;
+
     this.format = (x) => x;
   }
 
@@ -61,17 +72,12 @@ export class PickerScene {
         }
 
         if (key.name === "backspace") this.color = this.color.slice(0, -1);
-        if (key.name === "tab" && this.autocomplete)
-          this.color = this.colorName = this.autocomplete;
+        if (key.name === "tab" && this.autocomplete) this.color = this.colorName = this.autocomplete;
       }
 
       if (ch && chars.includes(ch.toLowerCase())) {
         this.color += ch;
-
-        this.autocomplete =
-          colornames.find((color) =>
-            color.name.toLowerCase().startsWith(this.color.toLowerCase()),
-          )?.name || "";
+        this.autocomplete = colornames.find((color) => color.name.toLowerCase().startsWith(this.color.toLowerCase()))?.name || "";
       }
     } else if (ch) {
       if (ch === "j") {
@@ -88,10 +94,6 @@ export class PickerScene {
         this.color = this.fixColor(this.swatch[this.swatchI].rgbString());
       }
 
-      if (ch === "l") {
-        this.focusLibrary = true;
-      }
-
       if (ch === "c") {
         this.swatchI = 10;
         this.inSwatch = false;
@@ -105,13 +107,8 @@ export class PickerScene {
         this.color = this.fixColor(this.color);
       }
 
-      if (ch === "f") {
-        this.format = nextFormat();
-      }
-
-      if (ch === "b") {
-        this.menu = true;
-      }
+      if (ch === "l") this.focusLibrary = true;
+      if (ch === "f") this.format = nextFormat();
 
       if (ch === '*') {
         if (this.library.includes(this.color))
@@ -124,41 +121,7 @@ export class PickerScene {
     }
   }
 
-  getSize() {
-    const { width, height } = getDimensions();
-
-    const cols = 103; // 33 + 2 + 33 + 2 + 33
-    const rows = 40;
-    const xPad = ~~((width - cols) / 2);
-    const yPad = ~~((height - rows) / 2);
-
-    const segmentWidth = 33;
-    const maxOpts = 7;
-    const firstSegment = xPad;
-    const secondSegment = xPad + segmentWidth + 2;
-    const thirdSegment = xPad + 2 * segmentWidth + 4;
-
-    return {
-      width,
-      height,
-      cols,
-      rows,
-      xPad,
-      yPad,
-      segmentWidth,
-      firstSegment,
-      secondSegment,
-      thirdSegment,
-      maxOpts,
-    };
-  }
-
   render(canvas) {
-    if (this.menu) {
-      this.menu = false;
-      throw 0;
-    }
-
     const { width, cols } = this.getSize();
 
     if (width < cols)
@@ -351,42 +314,42 @@ export class PickerScene {
     return this.changing ? "#1a1a1a" : "none";
   }
 
-  assignColorName() {
-    const rgb = new Color(str);
-    const near = nearest(rgb.toString({ format: "hex" }));
-
-    this.colorName = (near.distance === 0 ? "" : "~") + near.name;
-  }
-
   getOpts() {
     return this.focusLibrary
-      ? [
-        ["j/k", "go up/down"],
-        ["return", "select"],
-        ["h", "unfocus library"],
-        ["backspace", "remove from library"],
-        ["", ""],
-        ["", ""],
-        ["", ""],
-      ]
+      ? libraryMenu
       : this.changing
-        ? [
-          ["tab", "autocomplete"],
-          ["return", "select"],
-          ["", ""],
-          ["", ""],
-          ["", ""],
-          ["", ""],
-          ["", ""],
-        ]
-        : [
-          ["j/k", "go up/down"],
-          ["return", "select"],
-          ["c", "change"],
-          ["f", "switch format"],
-          ["b", "back to menu"],
-          ["*", "add to/remove from library"],
-          ["l", "focus library"]
-        ];
+        ? selectMenu
+        : mainMenu;
   }
+
+
+  getSize() {
+    const { width, height } = getDimensions();
+
+    const cols = 103; // 33 + 2 + 33 + 2 + 33
+    const rows = 40;
+    const xPad = ~~((width - cols) / 2);
+    const yPad = ~~((height - rows) / 2);
+
+    const segmentWidth = 33;
+    const maxOpts = 7;
+    const firstSegment = xPad;
+    const secondSegment = xPad + segmentWidth + 2;
+    const thirdSegment = xPad + 2 * segmentWidth + 4;
+
+    return {
+      width,
+      height,
+      cols,
+      rows,
+      xPad,
+      yPad,
+      segmentWidth,
+      firstSegment,
+      secondSegment,
+      thirdSegment,
+      maxOpts,
+    };
+  }
+
 }
