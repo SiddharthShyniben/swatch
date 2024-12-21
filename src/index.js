@@ -1,4 +1,5 @@
 import keypress from "keypress";
+import { throttle } from "throttle-debounce";
 
 import { Screen } from "./screen.js";
 import { MenuScene } from "./menu.js";
@@ -18,14 +19,14 @@ const screen = new Screen([
   picker,
 ]);
 
-process.stdin.on("keypress", function (ch, key) {
+process.stdin.on("keypress", throttle(10, function (ch, key) {
   if (key && key.ctrl && key.name === "c") {
     screen.close();
     process.exit();
   }
 
   screen.onKey(ch, key);
-});
+}), { noTrailing: true });
 
 screen.render();
 
