@@ -8,6 +8,7 @@ import {
   themeColors,
   customRGB,
   getDimensions,
+  getAround,
 
   nearest,
   nextFormat,
@@ -75,7 +76,6 @@ export class PickerScene {
         if (key.name === "return") {
           this.color = this.fixColor(this.library[this.libraryI]);
           this.focusLibrary = false;
-          this.libraryI = 0;
         }
 
         if (key.name === "backspace") {
@@ -270,7 +270,8 @@ export class PickerScene {
     if (this.library.length === 0)
       canvas.foreground(themeColors.dim).write(" Empty.")
 
-    for (const [i, color] of Object.entries(this.library)) {
+    const [offset, toDisplay] = getAround(this.library, 13, this.libraryI)
+    for (const [i, color] of Object.entries(toDisplay)) {
       const name = getColorName(color);
 
       canvas
@@ -281,7 +282,7 @@ export class PickerScene {
       canvas
         .moveTo(thirdSegment, yPad + 2 + 3 * i + 1)
         .background("none")
-        .foreground(this.focusLibrary && +i === this.libraryI ? themeColors.autocomplete : "none")
+        .foreground(this.focusLibrary && +i + offset === this.libraryI ? themeColors.autocomplete : "none")
         .write(`${name}`);
     }
   }

@@ -28,3 +28,9 @@ export const getColorName = (color) => {
     return near.name;
   } catch { }
 };
+
+export const getAround = (arr, surround, index) => {
+  if (index < Math.ceil(surround / 2)) return [0, arr.slice(0, surround)];
+  if (index > arr.length - 1 - Math.floor(surround / 2)) return [arr.length - surround, arr.slice(-surround)];
+  return [index - Math.ceil(surround / 2), arr.slice(index - Math.ceil(surround / 2), index + Math.floor(surround / 2))]
+}
