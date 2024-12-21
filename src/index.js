@@ -25,7 +25,12 @@ process.stdin.on("keypress", throttle(10, function (ch, key) {
     process.exit();
   }
 
-  screen.onKey(ch, key);
+  try {
+    screen.onKey(ch, key)
+  } catch {
+    screen.close();
+    process.exit();
+  }
 }), { noTrailing: true });
 
 screen.render();
