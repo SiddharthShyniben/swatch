@@ -128,6 +128,13 @@ export class PickerScene {
         setLibrary(this.library)
       }
 
+      if (key.name === "space") {
+        const color = randomColor({ format: "rgb" });
+        this.swatchI = 10;
+        this.inSwatch = false;
+        this.color = this.fixColor(color);
+      }
+
       if (key.name === "return") {
         this.swatchI = 10;
         this.inSwatch = false;

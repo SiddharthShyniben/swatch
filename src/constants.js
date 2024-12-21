@@ -60,7 +60,7 @@ export const customRGB = {
 };
 
 export const libraryMenu = [
-  ["j/k", "go up/down"],
+  ["h/j/k/l", "navigate"],
   ["return", "select"],
   ["h", "unfocus library"],
   ["backspace", "remove from library"],
@@ -81,11 +81,11 @@ export const selectMenu = [
 
 
 export const mainMenu = [
-  ["j/k", "go up/down"],
+  ["h/j/k/l", "navigate"],
   ["return", "select"],
-  ["c", "change"],
+  ["space", "generate!"],
+  ["c", "choose"],
   ["f", "switch format"],
-  ["b", "back to menu"],
   ["*", "add to/remove from library"],
-  ["l", "focus library"]
+  ["b", "back to main menu"]
 ]
