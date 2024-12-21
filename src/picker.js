@@ -37,49 +37,64 @@ export class PickerScene {
     this.format = (x) => x;
   }
 
+  render(canvas) {
+    const { width, cols } = this.getSize();
+
+    if (width < cols)
+      canvas.background("none").moveTo(0, 0).write("Screen too small!").flush();
+
+    this.drawColor(canvas);
+    this.drawOpts(canvas);
+    this.drawColorAndName(canvas);
+    this.drawSwatch(canvas);
+    this.drawContrast(canvas);
+    this.drawLibrary(canvas);
+
+    canvas.flush();
+  }
+
   onKey(ch, key) {
+    ch ??= '';
+    key ??= {};
+
     if (this.focusLibrary) {
-      if (ch) {
-        if (ch === 'h') this.focusLibrary = false;
-        if (ch === 'j') {
-          this.libraryI++;
-          if (this.libraryI >= this.library.length) this.libraryI = 0;
-        }
-        if (ch === 'k') {
-          this.libraryI--;
-          if (this.libraryI < 0) this.libraryI = this.library.length - 1;
-        }
+      if (ch === 'h') this.focusLibrary = false;
+      if (ch === 'j') {
+        this.libraryI++;
+        if (this.libraryI >= this.library.length) this.libraryI = 0;
+      }
+      if (ch === 'k') {
+        this.libraryI--;
+        if (this.libraryI < 0) this.libraryI = this.library.length - 1;
       }
 
-      if (key) {
-        if (key.name === "return" && this.library.length) {
+      if (this.library.length) {
+        if (key.name === "return") {
           this.color = this.fixColor(this.library[this.libraryI]);
           this.focusLibrary = false;
           this.libraryI = 0;
         }
 
-        if (key.name === "backspace" && this.library.length) {
+        if (key.name === "backspace") {
           this.library.splice(this.libraryI, 1);
           setLibrary(this.library)
           if (!this.library[this.libraryI]) this.libraryI--;
         }
       }
     } else if (this.changing) {
-      if (key) {
-        if (key.name === "return") {
-          this.color = this.fixColor(this.color);
-          this.changing = false;
-        }
-
-        if (key.name === "backspace") this.color = this.color.slice(0, -1);
-        if (key.name === "tab" && this.autocomplete) this.color = this.colorName = this.autocomplete;
+      if (key.name === "return") {
+        this.color = this.fixColor(this.color);
+        this.changing = false;
       }
 
-      if (ch && chars.includes(ch.toLowerCase())) {
+      if (key.name === "backspace") this.color = this.color.slice(0, -1);
+      if (key.name === "tab" && this.autocomplete) this.color = this.colorName = this.autocomplete;
+
+      if (chars.includes(ch.toLowerCase())) {
         this.color += ch;
         this.autocomplete = colornames.find((color) => color.name.toLowerCase().startsWith(this.color.toLowerCase()))?.name || "";
       }
-    } else if (ch) {
+    } else {
       if (ch === "j") {
         this.swatchI++;
         if (this.swatchI > 20) this.swatchI = 0;
@@ -101,12 +116,6 @@ export class PickerScene {
         this.colorName = this.color = "";
       }
 
-      if (key && key.name === "return") {
-        this.swatchI = 10;
-        this.inSwatch = false;
-        this.color = this.fixColor(this.color);
-      }
-
       if (ch === "l") this.focusLibrary = true;
       if (ch === "f") this.format = nextFormat();
 
@@ -118,23 +127,13 @@ export class PickerScene {
 
         setLibrary(this.library)
       }
+
+      if (key.name === "return") {
+        this.swatchI = 10;
+        this.inSwatch = false;
+        this.color = this.fixColor(this.color);
+      }
     }
-  }
-
-  render(canvas) {
-    const { width, cols } = this.getSize();
-
-    if (width < cols)
-      canvas.background("none").moveTo(0, 0).write("Screen too small!").flush();
-
-    this.drawColor(canvas);
-    this.drawOpts(canvas);
-    this.drawColorAndName(canvas);
-    this.drawSwatch(canvas);
-    this.drawContrast(canvas);
-    this.drawLibrary(canvas);
-
-    canvas.flush();
   }
 
   drawColor(canvas) {
