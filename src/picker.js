@@ -26,9 +26,12 @@ import randomColor from "randomcolor";
 export class PickerScene {
   constructor() {
     const initialColor = colornames[Math.floor(Math.random() * colornames.length)]
+
     this.color = "rgb(" + convert.hex.rgb(initialColor.hex.slice(1)).join(", ") + ")";
     this.colorName = initialColor.name;
     this.autocomplete = "";
+
+    this.lastColor = this.color;
 
     this.library = getLibrary();
     this.libraryI = 0;
@@ -40,6 +43,11 @@ export class PickerScene {
   }
 
   render(canvas) {
+    if (this.goToMenu) {
+      this.goToMenu = false;
+      throw 0;
+    }
+
     const { width, height, rows, cols } = this.getSize();
 
     if (width < cols || height < rows)
@@ -62,6 +70,8 @@ export class PickerScene {
     key ??= {};
 
     if (this.focusLibrary) {
+      if (key.name === "escape") this.goToMenu = true;
+
       if (ch === 'h') this.focusLibrary = false;
       if (ch === 'j') {
         this.libraryI++;
@@ -85,6 +95,12 @@ export class PickerScene {
         }
       }
     } else if (this.changing) {
+      if (key.name === "escape") {
+        this.color = this.lastColor;
+        this.changing = false;
+        this.autocomplete = "";
+      }
+
       if (key.name === "return") {
         this.color = this.fixColor(this.color);
         this.changing = false;
@@ -102,6 +118,8 @@ export class PickerScene {
         this.autocomplete = colornames.find((color) => color.name.toLowerCase().startsWith(this.color.toLowerCase()))?.name || "";
       }
     } else {
+      if (key.name === "escape") this.goToMenu = true;
+
       if (ch === "j") {
         this.swatchI++;
         if (this.swatchI > 20) this.swatchI = 0;
@@ -120,6 +138,7 @@ export class PickerScene {
         this.swatchI = 10;
         this.inSwatch = false;
         this.changing = true;
+        this.lastColor = this.color;
         this.colorName = this.color = "";
       }
 
