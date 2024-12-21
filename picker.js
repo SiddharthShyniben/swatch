@@ -29,13 +29,12 @@ export class PickerScene {
   onKey(ch, key) {
     if (this.focusLibrary) {
       if (ch) {
-        if (ch.toLowerCase() === 'h') this.focusLibrary = false;
-
-        if (ch.toLowerCase() === 'j') {
+        if (ch === 'h') this.focusLibrary = false;
+        if (ch === 'j') {
           this.libraryI++;
           if (this.libraryI >= this.library.length) this.libraryI = 0;
         }
-        if (ch.toLowerCase() === 'k') {
+        if (ch === 'k') {
           this.libraryI--;
           if (this.libraryI < 0) this.libraryI = this.library.length - 1;
         }
@@ -75,25 +74,25 @@ export class PickerScene {
           )?.name || "";
       }
     } else if (ch) {
-      if (ch.toLowerCase() === "j") {
+      if (ch === "j") {
         this.swatchI++;
         if (this.swatchI > 20) this.swatchI = 0;
         this.inSwatch = true;
         this.color = this.fixColor(this.swatch[this.swatchI].rgbString());
       }
 
-      if (ch.toLowerCase() === "k") {
+      if (ch === "k") {
         this.swatchI--;
         if (this.swatchI < 0) this.swatchI = 20;
         this.inSwatch = true;
         this.color = this.fixColor(this.swatch[this.swatchI].rgbString());
       }
 
-      if (ch.toLowerCase() === "l") {
+      if (ch === "l") {
         this.focusLibrary = true;
       }
 
-      if (ch.toLowerCase() === "c") {
+      if (ch === "c") {
         this.swatchI = 10;
         this.inSwatch = false;
         this.changing = true;
@@ -106,7 +105,7 @@ export class PickerScene {
         this.color = this.fixColor(this.color);
       }
 
-      if (ch.toLowerCase() === "f") {
+      if (ch === "f") {
         this.format = nextFormat();
       }
 
