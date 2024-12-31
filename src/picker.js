@@ -84,6 +84,7 @@ export class PickerScene {
 
       if (this.library.length) {
         if (key.name === "return") {
+          this.inSwatch = false;
           this.color = this.fixColor(this.library[this.libraryI]);
           this.focusLibrary = false;
         }
