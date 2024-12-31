@@ -291,6 +291,15 @@ export class PickerScene {
       canvas.foreground(themeColors.dim).write(" Empty.")
 
     const [offset, toDisplay] = getAround(this.library, 13, this.libraryI)
+
+    if (offset > 0)
+      if (offset + 13 < this.library.length)
+        canvas.foreground(themeColors.dim).write(" ↑↓")
+      else
+        canvas.foreground(themeColors.dim).write(" ↑")
+    else if (offset + 13 < this.library.length)
+      canvas.foreground(themeColors.dim).write("  ↓")
+
     for (const [i, color] of Object.entries(toDisplay)) {
       const name = getColorName(color);
 
