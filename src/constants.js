@@ -23,7 +23,7 @@ export const chars =
   ",# !$%&()-.0123456789?abcdefghijklmnopqrstuvwxyz²ßàáâäåçèéêëìíîïñòóöùúûüāēěğīıłńōőœšūżǎǐǔǜя’₂№ⅱ";
 
 export const themeColors = {
-  autocomplete: "yellow",
+  autocomplete: "#ffca00",
   info: "#ccfef2",
   dim: "grey",
   changing: "#1a1a1a",
@@ -78,7 +78,6 @@ export const selectMenu = [
   ["", ""],
   ["", ""],
 ]
-
 
 export const mainMenu = [
   ["h/j/k/l", "navigate"],
