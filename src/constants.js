@@ -57,6 +57,7 @@ export const customRGB = {
     coords: ["<number>[0, 255]", "<number>[0, 255]", "<number>[0, 255]"],
     commas: true,
   },
+  precision: 2
 };
 
 export const libraryMenu = [

@@ -1,11 +1,12 @@
 import Color from "colorjs.io";
 
-import { getNamedColor } from "./color-gen.js";
+import { getNamedColor, generateInitialTheme, generateTheme } from "./color-gen.js";
 import {
   getDimensions,
   nearest,
   contrastWith,
-  nextFormat
+  nextFormat,
+  trunc
 } from "./util.js";
 
 import { chars, customRGB, themeColors } from "./constants.js"
@@ -13,14 +14,7 @@ import { colornames } from "color-name-list";
 
 export class GeneratorScene {
   constructor() {
-    this.colors = [
-      getNamedColor(),
-      getNamedColor(),
-      getNamedColor(),
-      getNamedColor(),
-      getNamedColor(),
-    ];
-
+    this.colors = generateInitialTheme(5)
     this.colorNames = [];
     this.populateColorNames()
 
@@ -31,12 +25,13 @@ export class GeneratorScene {
   }
 
   render(canvas) {
+    canvas.eraseScreen();
     if (this.gotoMenu) {
       this.gotoMenu = false;
       throw 0;
     }
 
-    const { xPad, yPad, segmentHeight, segmentWidth } = this.getSize();
+    const { xPad, extraXPad, yPad, segmentHeight, segmentWidth } = this.getSize();
 
     for (let i = 0; i < this.colors.length; i++) {
       const color = this.colors[i];
@@ -48,19 +43,20 @@ export class GeneratorScene {
 
       for (let y = yPad + 1; y < yPad + segmentHeight; y++) {
         canvas
-          .moveTo(xPad + i * segmentWidth, y)
+          .moveTo(xPad + extraXPad + i * segmentWidth, y)
           .write(" ".repeat(segmentWidth))
       }
 
       let off = 0;
-      for (const text of [name, currentChanging ? color : this.format(color), this.locks[i] ? "✓" : 0].filter(x => x !== 0)) {
+      for (let text of [name, currentChanging ? color : this.format(color), this.locks[i] ? "✓" : 0].filter(x => x !== 0)) {
+        text = trunc(text, segmentWidth)
         const blackContrast = contrastWith(background, "black");
         const whiteContrast = contrastWith(background, "white");
         const fg = blackContrast > whiteContrast ? "black" : "white";
 
         const textPad = ~~((segmentWidth - text.length) / 2);
         canvas
-          .moveTo(xPad + i * segmentWidth + textPad, yPad + segmentHeight - 2 - off)
+          .moveTo(xPad + extraXPad + i * segmentWidth + textPad, yPad + segmentHeight - 2 - off)
           .foreground(fg)
           .write(text)
         off++;
@@ -72,7 +68,7 @@ export class GeneratorScene {
         canvas.background(themeColors.changing)
 
       canvas
-        .moveTo(xPad + i * segmentWidth, yPad)
+        .moveTo(xPad + extraXPad + i * segmentWidth, yPad)
         .write(" ".repeat(segmentWidth))
     }
 
@@ -112,6 +108,20 @@ export class GeneratorScene {
       }
 
       if (ch === ".") this.locks[this.focusedColor] = !this.locks[this.focusedColor];
+      if (ch === "-") {
+        if (this.colors.length > 1) {
+          this.locks.splice(this.focusedColor, 1)
+          this.colors.splice(this.focusedColor, 1)
+        }
+
+        if (this.focusedColor >= this.colors.length) this.focusedColor = this.colors.length - 1
+      }
+
+      if (ch === "+") {
+        this.locks.splice(this.focusedColor + 1, 0, false);
+        this.colors.splice(this.focusedColor + 1, 0, getNamedColor());
+        this.populateColorNames()
+      }
 
       if (ch === "c") {
         this.lastColor = this.colors[this.focusedColor];
@@ -128,9 +138,19 @@ export class GeneratorScene {
   }
 
   regenerateColors() {
-    for (let i = 0; i < this.colors.length; i++) {
-      if (!this.locks[i])
-        this.colors[i] = getNamedColor();
+    const base = this.colors.filter((_, i) => this.locks[i]);
+
+    if (!base.length) {
+      this.colors = generateInitialTheme(this.colors.length)
+    } else {
+      const generated = generateTheme(base, this.colors.length);
+
+      let j = 0;
+
+      for (let i = 0; i < this.colors.length; i++) {
+        if (!this.locks[i])
+          this.colors[i] = generated[j++];
+      }
     }
   }
 
@@ -156,11 +176,12 @@ export class GeneratorScene {
     const rows = height - 2 * yPad;
 
     const segmentWidth = Math.floor(cols / this.colors.length)
+    const extraXPad = Math.floor((cols - (segmentWidth * this.colors.length)) / 2)
 
     const infoHeight = 3;
     const segmentHeight = rows - infoHeight;
 
-    return { xPad, yPad, cols, rows, segmentWidth, segmentHeight }
+    return { xPad, yPad, cols, rows, segmentWidth, segmentHeight, extraXPad }
   }
 
   fixColor(str) {
