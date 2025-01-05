@@ -9,24 +9,22 @@ export class MenuScene {
   }
 
   onKey(ch, key) {
-    if (key) {
-      if (key.name === "escape") {
-        throw 0;
-      }
+    if (key.name === "escape") {
+      throw 0;
+    }
 
-      if (key.name === "up") {
-        this.state.chosen--;
-        if (this.state.chosen < 0) this.state.chosen = this.menuCount - 1;
-      }
+    if (key.name === "up" || ch === "k") {
+      this.state.chosen--;
+      if (this.state.chosen < 0) this.state.chosen = this.menuCount - 1;
+    }
 
-      if (key.name === "down") {
-        this.state.chosen++;
-        if (this.state.chosen > this.menuCount - 1) this.state.chosen = 0;
-      }
+    if (key.name === "down" || ch === "j") {
+      this.state.chosen++;
+      if (this.state.chosen > this.menuCount - 1) this.state.chosen = 0;
+    }
 
-      if (key.name === "return") {
-        this.scheduledChange = true;
-      }
+    if (key.name === "return") {
+      this.scheduledChange = true;
     }
 
     const index = this.menuKeys.findIndex(
